@@ -23,7 +23,16 @@ def get_config() -> DatabaseConfig:
     import os
     from dotenv import load_dotenv
     
-    load_dotenv()
+    # Search for .schemactl in current dir, then home dir
+    config_paths = [
+        Path(os.getcwd()) / '.schemactl',
+        Path.home() / '.schemactl'
+    ]
+    
+    for path in config_paths:
+        if path.is_file():
+            load_dotenv(dotenv_path=path)
+            break
     
     return DatabaseConfig(
         url=os.getenv('DATABASE_URL', 'postgresql+asyncpg://localhost/mydb'),
@@ -42,6 +51,41 @@ def cli(ctx, debug):
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
     ctx.obj = get_config()
+
+
+@click.group(name='config')
+@click.pass_context
+def config_group(ctx):
+    """Manage configuration"""
+    ctx.obj = ctx.parent.obj
+
+@config_group.command(name='show')
+@click.pass_obj
+def show_config(config: DatabaseConfig):
+    """Show current configuration"""
+    table = Table(title="Current Configuration")
+    table.add_column("Setting", style="cyan")
+    table.add_column("Value", style="white")
+
+    # Add rows from the config object
+    url = config.url.split('@')[-1] if '@' in config.url else config.url
+    table.add_row("Database URL", url)
+    table.add_row("Migrations Directory", str(config.migrations_dir))
+    table.add_row("Schema File", str(config.schema_file))
+    table.add_row("Schema Table", config.schema_table)
+    table.add_row("Models Path", config.models_path or "N/A")
+    table.add_row("Models File", str(config.models_file) if config.models_file else "N/A")
+    table.add_row("Echo SQL", str(config.echo))
+    
+    # Exclude the schema table from the user-facing list for clarity
+    user_excludes = sorted(config.exclude_tables - {config.schema_table})
+    table.add_row("Exclude Tables", ", ".join(user_excludes) if user_excludes else "N/A")
+    table.add_row("Exclude Patterns", ", ".join(config.exclude_patterns) if config.exclude_patterns else "N/A")
+
+    console.print(table)
+
+cli.add_command(config_group)
+
 
 @cli.command()
 @click.option('--message', default="", help='Migration name')
