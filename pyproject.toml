@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "schemactl"
 version = "0.1.0"
-description = "Modern Python UIs Powered by Basecoat UI"
+description = "next‑generation database migration tool"
 authors = ["Teams <teams@dotlabs.dev>"]
 license = "MIT"
 readme = "README.md"

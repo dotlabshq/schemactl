@@ -105,6 +105,17 @@ schemactl new \
   --message add_users_table
 ```
 
+This generates an empty migration file.
+
+To auto-generate a migration based on model changes, use the `--auto` flag and specify the path to your models:
+
+```bash
+schemactl new \
+  --message create_initial_tables \
+  --auto \
+  --models app.models
+```
+
 What happens:
 
 1. Connects to the database
