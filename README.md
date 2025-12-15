@@ -31,15 +31,23 @@ Most migration tools are:
 
 ### Schema as Code
 
-Your SQLAlchemy models (metadata) define the desired state of the database.
+Your SQLAlchemy models (metadata) define the desired state of the database. For example, in `app/models.py`:
 
 ```python
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy.orm import declarative_base
+from datetime import datetime
+
 Base = declarative_base()
 
 class User(Base):
-    __tablename__ = "users"
-    id = mapped_column(Integer, primary_key=True)
-    email = mapped_column(String, unique=True)
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False)
+    username = Column(String(100), unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
 ```
 
 `schemactl` compares this metadata against the actual database schema and generates migrations automatically.
@@ -100,12 +108,11 @@ schemactl wait      # wait for DB readiness
 
 ### 1. Generate a Migration
 
-```bash
-schemactl new \
-  --message add_users_table
-```
+To generate an empty migration file:
 
-This generates an empty migration file.
+```bash
+schemactl new --message add_users_table
+```
 
 To auto-generate a migration based on model changes, use the `--auto` flag and specify the path to your models:
 
@@ -116,17 +123,31 @@ schemactl new \
   --models app.models
 ```
 
-What happens:
-
-1. Connects to the database
-2. Loads SQLAlchemy metadata
-3. Uses Alembic autogenerate to compute schema diff
-4. Creates a new migration file under:
-
+The command generates a new migration file:
 ```text
 migrations/
-└── versions/
-    └── 20250101123000_add_users_table.py
+└── 20251215_create_initial_tables.sql
+```
+
+The content of the generated file will look like this:
+
+```sql
+-- migrate:up
+-- Auto-generated migration: create_initial_tables
+CREATE TABLE users (
+    id SERIAL NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    username VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE,
+    is_active BOOLEAN,
+    PRIMARY KEY (id),
+    UNIQUE (email),
+    UNIQUE (username)
+);
+
+-- migrate:down
+-- Rollback: create_initial_tables
+DROP TABLE users;
 ```
 
 ---
